@@ -1,11 +1,11 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { FeedCard } from "@/shared/components/FeedCard";
+import { api } from "../../../../convex/_generated/api";
+import { FeedCard } from "./FeedCard";
 import { useState, useEffect, useRef } from "react";
 import { ArrowUp } from "lucide-react";
-import ShinyText from "@/components/ShinyText";
+import ShinyText from "@/shared/components/ShinyText";
 
 export default function Feed() {
   const posts = useQuery(api.posts.list);

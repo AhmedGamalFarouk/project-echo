@@ -141,3 +141,33 @@ body {
   @apply bg-transparent border-0 border-b border-border focus-visible:ring-0 focus-visible:border-primary px-0 rounded-none placeholder:text-muted-foreground/50;
 }
 
+/* Hide scrollbar but keep functionality */
+.snap-y {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.snap-y::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced transitions for feed cards */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out forwards;
+}

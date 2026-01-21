@@ -23,6 +23,15 @@
       }
     ],
     "paths": {
+      "@/features/*": ["./src/features/*"],
+      "@/core/*": ["./src/core/*"],
+      "@/shared/*": ["./src/shared/*"],
+      "@/components/*": ["./src/shared/components/*"],
+      "@/components": ["./src/shared/components"],
+      "@/lib/*": ["./src/shared/lib/*"],
+      "@/lib": ["./src/shared/lib"],
+      "@/types": ["./src/shared/types"],
+      "@/constants": ["./src/shared/constants"],
       "@/*": ["./src/*"]
     }
   },
