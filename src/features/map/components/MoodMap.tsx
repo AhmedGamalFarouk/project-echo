@@ -6,16 +6,8 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 
-const MOOD_COLORS: Record<string, string> = {
-  Serene: '#4ade80',    // Mint
-  Energetic: '#facc15', // Yellow
-  Melancholy: '#3b82f6',// Blue
-  Anxious: '#a855f7',   // Purple
-  Furious: '#ef4444',   // Red
-};
-
 export default function MoodMap() {
-  const cityMoods = useQuery(api.map.getMoods);
+  const cityActivity = useQuery(api.map.getMoods);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const [isLiveUpdate, setIsLiveUpdate] = React.useState(false);
   const prevCityCountRef = React.useRef<number>(0);
@@ -30,9 +22,9 @@ export default function MoodMap() {
 
   // Detect live updates and new cities
   React.useEffect(() => {
-    if (cityMoods) {
-      const currentCount = cityMoods.length;
-      const currentCityKeys = new Set(cityMoods.map(c => c.city));
+    if (cityActivity) {
+      const currentCount = cityActivity.length;
+      const currentCityKeys = new Set(cityActivity.map(c => c.city));
       
       // Check if data changed (not initial load)
       if (prevCityCountRef.current > 0 && currentCount !== prevCityCountRef.current) {
@@ -40,7 +32,7 @@ export default function MoodMap() {
         
         // Identify new cities
         const prevCities = new Set(
-          cityMoods
+          cityActivity
             .slice(0, prevCityCountRef.current)
             .map(c => c.city)
         );
@@ -60,7 +52,7 @@ export default function MoodMap() {
       
       prevCityCountRef.current = currentCount;
     }
-  }, [cityMoods]);
+  }, [cityActivity]);
 
   if (!mapboxToken) {
     return (
@@ -82,18 +74,18 @@ export default function MoodMap() {
   return (
     <div className="w-full h-full border-y border-white/10 relative overflow-hidden group">
         <div className="absolute top-4 left-4 z-10 glass-panel px-4 py-2 rounded-none flex items-center gap-3">
-            <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-white">Global_Emotive_State</h3>
+            <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-white">Global_Activity_Map</h3>
             {isLiveUpdate && (
               <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <span className="font-mono text-[10px] text-primary uppercase tracking-wider">Live</span>
               </div>
             )}
-            {!isLiveUpdate && cityMoods && cityMoods.length > 0 && (
+            {!isLiveUpdate && cityActivity && cityActivity.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-green-500/50" />
                 <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                  {cityMoods.length} {cityMoods.length === 1 ? 'City' : 'Cities'}
+                  {cityActivity.length} {cityActivity.length === 1 ? 'City' : 'Cities'}
                 </span>
               </div>
             )}
@@ -107,8 +99,12 @@ export default function MoodMap() {
             mapboxAccessToken={mapboxToken}
             attributionControl={false}
         >
-            {cityMoods?.map((city) => {
+            {cityActivity?.map((city) => {
                 const isNew = newCities.has(city.city);
+                // Activity intensity based on post count
+                const intensity = Math.min(city.count / 10, 1);
+                const size = 8 + (intensity * 8); // 8-16px
+                
                 return (
                 <Marker 
                     key={city.city} 
@@ -119,19 +115,26 @@ export default function MoodMap() {
                     <div className={`relative flex flex-col items-center group/marker cursor-pointer ${isNew ? 'animate-in zoom-in-50 fade-in duration-700' : ''}`}>
                         {/* Tooltip on Hover */}
                         <div className="absolute bottom-full mb-2 hidden group-hover/marker:block bg-black/90 border border-white/20 px-2 py-1 text-[10px] font-mono whitespace-nowrap z-50">
-                            {city.city} :: {city.mood} ({city.count})
+                            {city.city} :: {city.count} {city.count === 1 ? 'post' : 'posts'}
                         </div>
 
                         {/* Glowing Pulse - Extra intense for new cities */}
                         <div 
                             className={`absolute -inset-4 rounded-full opacity-50 blur-md ${isNew ? 'animate-ping' : 'animate-pulse'}`}
-                            style={{ backgroundColor: MOOD_COLORS[city.mood] || '#fff' }}
+                            style={{ 
+                                backgroundColor: `rgba(255, 255, 255, ${intensity})`,
+                            }}
                         />
                         
                         {/* The Core Dot */}
                         <div 
-                            className={`h-3 w-3 rounded-full border border-white/50 relative z-10 transition-transform ${isNew ? 'scale-125' : ''}`}
-                            style={{ backgroundColor: MOOD_COLORS[city.mood] || '#fff' }}
+                            className={`rounded-full border border-white/50 relative z-10 transition-transform ${isNew ? 'scale-125' : ''}`}
+                            style={{ 
+                                backgroundColor: '#fff',
+                                width: `${size}px`,
+                                height: `${size}px`,
+                                opacity: 0.8 + (intensity * 0.2)
+                            }}
                         />
                     </div>
                 </Marker>

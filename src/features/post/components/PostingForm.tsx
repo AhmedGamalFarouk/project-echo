@@ -4,12 +4,9 @@ import { useState, useEffect } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { InputCard } from "./InputCard";
-import { MoodButton } from "./MoodButton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Loader2 } from "lucide-react";
-
-type MoodType = "Serene" | "Energetic" | "Melancholy" | "Anxious" | "Furious";
 
 interface StoredLocationPreference {
   method: "gps" | "manual";
@@ -33,7 +30,6 @@ interface PostingFormProps {
 
 export default function PostingForm({ onLocationUpdate, onLocationMethodSelected }: PostingFormProps) {
     const [content, setContent] = useState("");
-    const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
     const [locationState, setLocationState] = useState<{
         status: "idle" | "locating" | "success" | "error";
         city?: string;
@@ -173,26 +169,41 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
     };
 
     const handleSubmit = async () => {
-        if (!content.trim() || !locationState.lat || !locationState.lon || !selectedMood) return;
+        console.log("Submit clicked - validating...");
+        console.log("Content:", content.trim() ? "valid" : "empty");
+        console.log("Location state:", locationState);
+        
+        if (!content.trim()) {
+            alert("Please write something before posting.");
+            return;
+        }
+        
+        if (!locationState.lat || !locationState.lon) {
+            alert("Location is required. Please allow location access or select a city.");
+            return;
+        }
         
         setIsSubmitting(true);
+        console.log("Submitting post...");
+        
         try {
             await createPost({
                 type: "text",
                 content: content,
-                mood: selectedMood,
                 lat: locationState.lat,
                 lon: locationState.lon,
                 city: locationState.city || "Unknown",
                 country: locationState.country || "XX",
             });
             
+            console.log("Post created successfully!");
+            
             // Reset Form
             setContent("");
-            setSelectedMood(null);
+            alert("Your echo has been posted!");
         } catch (error) {
-            console.error(error);
-            alert("Failed to post. Please try again.");
+            console.error("Post creation error:", error);
+            alert(`Failed to post: ${error instanceof Error ? error.message : "Unknown error"}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -206,6 +217,33 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
                     <h3 className="font-mono text-xs tracking-widest text-primary uppercase">
                         New Echo
                     </h3>
+                    {/* Location Status Indicator */}
+                    <div className="font-mono text-[10px] text-muted-foreground flex items-center gap-2">
+                        {locationState.status === "locating" && (
+                            <>
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <span>Locating...</span>
+                            </>
+                        )}
+                        {locationState.status === "success" && locationState.city && (
+                            <>
+                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                <span>{locationState.city}</span>
+                            </>
+                        )}
+                        {locationState.status === "error" && (
+                            <>
+                                <div className="h-2 w-2 rounded-full bg-red-500" />
+                                <span>Location Error</span>
+                            </>
+                        )}
+                        {locationState.status === "idle" && (
+                            <>
+                                <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                                <span>No Location</span>
+                            </>
+                        )}
+                    </div>
                 </div>
 
                 {/* Textarea for Post Content */}
@@ -217,28 +255,11 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
                     maxLength={500}
                 />
 
-                {/* Mood Selection */}
-                <div className="mt-4 space-y-2">
-                    <label className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                        Select Your Mood
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {(["Serene", "Energetic", "Melancholy", "Anxious", "Furious"] as MoodType[]).map((mood) => (
-                            <MoodButton
-                                key={mood}
-                                mood={mood}
-                                selected={selectedMood === mood}
-                                onClick={() => setSelectedMood(mood)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
                 {/* Post Action */}
                 <div className="flex justify-end mt-4">
                     <Button 
                         onClick={handleSubmit}
-                        disabled={!content.trim() || !selectedMood || isSubmitting || locationState.status === 'locating' || !locationState.lat}
+                        disabled={!content.trim() || isSubmitting || locationState.status === 'locating' || !locationState.lat}
                         className="rounded-none px-6 font-mono tracking-widest uppercase hover:bg-primary/90 text-xs"
                         size="sm"
                     >

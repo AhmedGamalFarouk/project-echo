@@ -24,7 +24,6 @@ export const create = mutation({
   args: {
     type: v.union(v.literal("text"), v.literal("image")),
     content: v.string(),
-    mood: v.string(),
     lat: v.number(),
     lon: v.number(),
     city: v.string(),    // In a real flow, this comes from a secure internal action
@@ -63,7 +62,6 @@ export const create = mutation({
       userId: user._id,
       type: args.type,
       content: args.content,
-      mood: args.mood,
       location: {
         city: args.city,
         country: args.country,

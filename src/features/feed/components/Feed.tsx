@@ -90,7 +90,6 @@ export default function Feed() {
           key={post._id}
           city={post.location.city}
           country={post.location.country}
-          mood={post.mood}
           content={post.content}
           timestamp={post._creationTime}
           index={index}

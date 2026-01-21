@@ -17,22 +17,22 @@ I have also corrected the Authentication logic to match our move to **Clerk** (r
 
 - **The Daily Prompt:** At 12:00 UTC, a new global prompt appears for everyone simultaneously.
 - **The Soapbox:** Authenticated users can post **once** per day.
-- **The Mood Check-In:** Users manually select their mood (e.g., Serene, Melancholy, Energetic, Furious).
+- **The Mood Check-In:** Users are prompted to log their mood once per day (e.g., Serene, Melancholy, Energetic, Furious). This is separate from posting and tracks personal emotional trends over time.
 - **Automatic Location:** The platform automatically detects the user's city via GPS when they post.
-- **The Public Wipe:** Posts disappear from the public feed and map after 24 hours (Rolling Window).
+- **The Public Wipe:** Posts disappear from the public feed after 24 hours (Rolling Window).
 - **Private History:** Authenticated users can view their own past posts and mood trends forever, even after they expire publicly.
 - **Pseudonymity:** User identities are hidden on the public feed. Users appear as "Anonymous" or generated aliases (e.g., "Blue Owl"), but are authenticated via Clerk for safety and accountability.
-- **Guest Mode:** Unregistered users can view the Global Map and Public Feed but cannot post.
+- **Guest Mode:** Unregistered users can view the Global Feed but cannot post.
 
   ### **1.2 Mobile App (Flutter) \- "The Input"**
 
 - **The Posting Flow:**
   1. **GPS Lock:** App requests location permission.
-  2. **Mood Selector:** User picks a mood icon.
-  3. **Content:** User takes a photo (Camera) or writes text.
-  4. **Submit:** The post is sent to the backend to be tagged with City and Mood.
-- **The Feed:** A scrollable list of today's answers from around the world.
-- **The Journal:** A private tab showing the user's personal history and mood stats.
+  2. **Content:** User takes a photo (Camera) or writes text.
+  3. **Submit:** The post is sent to the backend to be tagged with City.
+- **The Feed:** A scrollable list of today's posts from around the world.
+- **The Journal:** A private tab showing the user's personal history and mood trends.
+- **Daily Mood Prompt:** Once per day, users are prompted to log their current mood separately from posting.
 
   ### **1.3 Web App (Next.js) \- "The Universal Hub"**
 
@@ -41,9 +41,10 @@ I have also corrected the Authentication logic to match our move to **Clerk** (r
   - **Posting:** Users can answer the prompt via the browser. (Uses Browser Geolocation API \+ Image Upload).
   - **The Feed:** Full read access to the global feed with infinite scroll.
   - **The Journal:** Users can review their past archives and see their personal mood calendar.
+  - **Daily Mood Prompt:** Once per day, users are prompted to log their current mood.
 - **Web-Exclusive Features:**
-  - **Global Mood Map:** A real-time, high-fidelity WebGL map where cities are colored based on the dominant mood of their inhabitants.
-  - **City Trends Sidebar:** A data visualization panel showing "Top 5 Happiest Cities Today" or "Most Anxious Regions."
+  - **Activity Map:** A real-time map showing posting activity by city.
+  - **City Activity Panel:** A data visualization panel showing "Most Active Cities Today" or "Recent Posts by Region."
   - **Deep Links:** Specific posts (if public) can be shared via URL (links expire in 24h).
 
   ***
@@ -68,11 +69,14 @@ I have also corrected the Authentication logic to match our move to **Clerk** (r
 - **Post:**
   - Links to User (via Clerk Token) and Prompt.
   - **Content:** Text or Image Storage ID.
-  - **Mood:** The selected emotion.
   - **Location:** City & Country (e.g., "Paris, FR").
   - **Status:** "Public" (Active) or "Archived" (Expired).
   - **Moderation:** flags (count) and isHidden (boolean).
-- ## **Comment (V2):** Linked to a post, with a maximum depth of 3 replies.
+- **MoodLog (Future):** Daily mood check-ins separate from posts.
+  - userId: Links to User.
+  - mood: The selected emotion.
+  - timestamp: When the mood was logged.
+- **Comment (V2):** Linked to a post, with a maximum depth of 3 replies.
 
   ## **3\. Key Logic & Automation**
 
@@ -91,21 +95,19 @@ A scheduled background task runs on the backend **every hour**.
 
 1. It queries for posts where status \== "Public" AND createdAt \< 24 hours ago.
 2. It updates these posts to status \= "Archived".
-3. **Result:** The post vanishes from the Feed and Map but remains in the user's private getMyJournal view.
+3. **Result:** The post vanishes from the Feed but remains in the user's private journal view.
 
-   ### **3.3 The Map Aggregation**
+   ### **3.3 Daily Mood Check-In (Future)**
 
-The backend calculates the "Mood of the City" dynamically:
+Users will be prompted once per day to log their mood:
 
-1. It filters for **Public** and **Non-Hidden** posts.
-2. It groups posts by City.
-3. It counts the moods (e.g., 50 Happy, 10 Sad).
-4. It applies a **Threshold**: Cities with \< 5 active posts are ignored (Privacy/Significance).
-5. ## It returns the "Dominant Mood" color to the Web Map.
+1. The system checks if the user has logged a mood in the last 24 hours.
+2. If not, a prompt appears asking them to select their current mood.
+3. Mood data is stored separately from posts and used for personal trend analysis in the Journal.
 
    ## **4\. UI/UX Guidelines**
 
-   ### **4.1 Mood Palette**
+   ### **4.1 Mood Palette (For Personal Journal & Daily Check-In)**
 
 - **Serene:** Mint Green
 - **Energetic:** Sunny Yellow
@@ -113,7 +115,9 @@ The backend calculates the "Mood of the City" dynamically:
 - **Anxious:** Purple
 - **Furious:** Red
 
-  ### **4.2 Safety & Moderation**
+These colors are used in the user's personal journal to visualize mood trends over time, not in the public feed.
+
+### **4.2 Safety & Moderation**
 
 - **Report System:** Every post has a "Report" icon.
 - **Auto-Hide:** If a post receives \>3 reports, it is automatically hidden (flagged) until reviewed by an admin.

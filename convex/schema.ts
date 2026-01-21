@@ -12,7 +12,6 @@ export default defineSchema({
     userId: v.id("users"),
     type: v.union(v.literal("text"), v.literal("image")), 
     content: v.string(), // Text content or Storage ID
-    mood: v.string(), // "Serene", "Melancholy", etc.
     location: v.object({
       city: v.string(),
       country: v.string(),
