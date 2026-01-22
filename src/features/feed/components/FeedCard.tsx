@@ -2,8 +2,11 @@ import * as React from "react"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { CommentSection } from "@/features/comments"
+import { Id } from "../../../../convex/_generated/dataModel"
 
 interface FeedCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  postId: Id<"posts">
   city: string
   country: string
   content: string
@@ -13,7 +16,7 @@ interface FeedCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const FeedCard = React.forwardRef<HTMLDivElement, FeedCardProps>(
-  ({ className, city, country, content, timestamp, isPrivate, index, ...props }, ref) => {
+  ({ className, postId, city, country, content, timestamp, isPrivate, index, ...props }, ref) => {
     const timeAgo = formatDistanceToNow(timestamp, { addSuffix: true })
     
     return (
@@ -60,6 +63,9 @@ const FeedCard = React.forwardRef<HTMLDivElement, FeedCardProps>(
                <div className="absolute top-4 right-4 h-2 w-2 animate-pulse rounded-full bg-white/20" />
             )}
           </CardContent>
+
+          {/* Comments Section */}
+          <CommentSection postId={postId} />
           
           {/* Enhanced Scanline effect */}
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] opacity-5 bg-size-[100%_4px,3px_100%] z-20" />

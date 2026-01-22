@@ -25,4 +25,17 @@ export default defineSchema({
   })
     .index("by_status", ["status"]) // Critical for the Feed query
     .index("by_user", ["userId"]), // Critical for Journal
+
+  comments: defineTable({
+    postId: v.id("posts"),
+    userId: v.id("users"),
+    parentId: v.optional(v.id("comments")), // For nested replies (null = top-level comment)
+    content: v.string(),
+    depth: v.number(), // 0 = top-level, max 3 for replies
+    isHidden: v.boolean(), // report system
+    flags: v.number(),
+  })
+    .index("by_post", ["postId"]) // Get all comments for a post
+    .index("by_parent", ["parentId"]) // Get replies to a comment
+    .index("by_user", ["userId"]), // Get user's comments
 });

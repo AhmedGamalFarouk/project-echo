@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as location from "../location.js";
 import type * as map from "../map.js";
@@ -20,6 +21,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  comments: typeof comments;
   crons: typeof crons;
   location: typeof location;
   map: typeof map;

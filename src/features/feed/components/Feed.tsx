@@ -88,6 +88,7 @@ export default function Feed() {
       {posts.map((post, index) => (
         <FeedCard
           key={post._id}
+          postId={post._id}
           city={post.location.city}
           country={post.location.country}
           content={post.content}

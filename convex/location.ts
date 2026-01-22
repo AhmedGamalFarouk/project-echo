@@ -8,7 +8,8 @@ export const identifyCity = action({
   handler: async (ctx, args) => {
     // Use OpenStreetMap Nominatim API (free, no key required)
     try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${args.lat}&lon=${args.lon}&format=json&addressdetails=1`;
+      // Request zoom level 5 for state/region-level detail
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${args.lat}&lon=${args.lon}&format=json&addressdetails=1&zoom=5`;
       
       const response = await fetch(url, {
         headers: {
@@ -22,16 +23,17 @@ export const identifyCity = action({
 
       const data = await response.json();
 
-      // Parse the address to get city and country
+      // Parse the address to get state and country
       let city = "Unknown";
       let country = "Unknown";
 
       if (data.address) {
-        city = data.address.city || 
-               data.address.town || 
-               data.address.village || 
+        // Prioritize state/region level for privacy
+        city = data.address.state ||
+               data.address.region ||
+               data.address.state_district ||
                data.address.county ||
-               data.address.state ||
+               data.address.city ||
                "Unknown";
         country = data.address.country || "Unknown";
       }

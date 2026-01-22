@@ -228,7 +228,7 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
                         {locationState.status === "success" && locationState.city && (
                             <>
                                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                <span>{locationState.city}</span>
+                                <span>{locationState.city}, {locationState.country}</span>
                             </>
                         )}
                         {locationState.status === "error" && (
