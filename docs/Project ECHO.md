@@ -6,7 +6,7 @@ I have also corrected the Authentication logic to match our move to **Clerk** (r
 
 # **Project ECHO**
 
-**Tagline:** The social network that forgets.  
+**Tagline:** The social network that forgets.
 **Core Concept:** An ephemeral, pseudonymous platform where users respond to a daily prompt and log their mood. Public content disappears every 24 hours. The app automatically maps the world's emotional state by city.
 
 ---
