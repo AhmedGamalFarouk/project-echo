@@ -59,7 +59,7 @@ export default function Feed() {
     return (
       <div className="w-full h-[calc(100vh-6rem)] flex items-center justify-center">
         <div className="max-w-md text-center text-muted-foreground font-mono text-sm p-8 bg-black/20">
-          <ShinyText text="BE THE FIRST TO SPEEK YOUR MIND." disabled={false} speed={3} className="text-sm" />
+          <ShinyText text="BE THE FIRST TO SPEEK YOUR MIND TODAY." disabled={false} speed={3} className="text-sm" />
         </div>
       </div>
     );

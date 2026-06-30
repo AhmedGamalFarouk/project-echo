@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAction, useMutation } from "convex/react";
+import { useAction, useMutation, useConvexAuth } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { InputCard } from "./InputCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, AlertCircle } from "lucide-react";
 
 interface StoredLocationPreference {
   method: "gps" | "manual";
@@ -40,9 +40,11 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
     }>({ status: "idle" });
     
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [locationPreference, setLocationPreference] = useState<StoredLocationPreference | null>(null);
 
     // Convex Hooks
+    const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
     const identifyCity = useAction(api.location.identifyCity);
     const createPost = useMutation(api.posts.create);
 
@@ -169,17 +171,32 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
     };
 
     const handleSubmit = async () => {
+        // Clear previous error
+        setSubmitError(null);
+        
         console.log("Submit clicked - validating...");
         console.log("Content:", content.trim() ? "valid" : "empty");
         console.log("Location state:", locationState);
+        console.log("Auth state:", { isAuthenticated, isAuthLoading });
+        
+        // Check authentication first
+        if (isAuthLoading) {
+            setSubmitError("Authentication is loading. Please wait.");
+            return;
+        }
+        
+        if (!isAuthenticated) {
+            setSubmitError("You must be signed in to post. Please sign in and try again.");
+            return;
+        }
         
         if (!content.trim()) {
-            alert("Please write something before posting.");
+            setSubmitError("Please write something before posting.");
             return;
         }
         
         if (!locationState.lat || !locationState.lon) {
-            alert("Location is required. Please allow location access or select a city.");
+            setSubmitError("Location is required. Please allow location access or select a city.");
             return;
         }
         
@@ -200,10 +217,26 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
             
             // Reset Form
             setContent("");
-            alert("Your echo has been posted!");
-        } catch (error) {
+            setSubmitError(null);
+        } catch (error: unknown) {
             console.error("Post creation error:", error);
-            alert(`Failed to post: ${error instanceof Error ? error.message : "Unknown error"}`);
+            
+            // Extract error message
+            let errorMessage = "Unknown error occurred";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "object" && error !== null && "message" in error) {
+                errorMessage = String((error as { message: unknown }).message);
+            }
+            
+            // Provide user-friendly error messages
+            if (errorMessage.includes("Unauthorized") || errorMessage.includes("Not authenticated")) {
+                setSubmitError("Authentication error. Please sign out and sign back in.");
+            } else if (errorMessage.includes("rate limit")) {
+                setSubmitError("Too many requests. Please wait a moment and try again.");
+            } else {
+                setSubmitError(`Failed to post: ${errorMessage}`);
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -249,17 +282,36 @@ export default function PostingForm({ onLocationUpdate, onLocationMethodSelected
                 {/* Textarea for Post Content */}
                 <Textarea
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                    onChange={(e) => {
+                        setContent(e.target.value);
+                        if (submitError) setSubmitError(null); // Clear error on typing
+                    }}
                     placeholder="What echoes through your mind tonight?"
                     className="min-h-30 rounded-none border-white/10 bg-white/5 focus:bg-white/10 font-mono text-sm resize-none transition-colors"
                     maxLength={500}
                 />
 
+                {/* Error Display */}
+                {submitError && (
+                    <div className="flex items-start gap-2 mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-none">
+                        <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="font-mono text-xs text-red-400">{submitError}</p>
+                    </div>
+                )}
+
+                {/* Auth Loading Warning */}
+                {isAuthLoading && (
+                    <div className="flex items-center gap-2 mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-none">
+                        <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
+                        <p className="font-mono text-xs text-yellow-400">Authenticating...</p>
+                    </div>
+                )}
+
                 {/* Post Action */}
                 <div className="flex justify-end mt-4">
-                    <Button 
+                    <Button
                         onClick={handleSubmit}
-                        disabled={!content.trim() || isSubmitting || locationState.status === 'locating' || !locationState.lat}
+                        disabled={!content.trim() || isSubmitting || locationState.status === 'locating' || !locationState.lat || isAuthLoading}
                         className="rounded-none px-6 font-mono tracking-widest uppercase hover:bg-primary/90 text-xs"
                         size="sm"
                     >

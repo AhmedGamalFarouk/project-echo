@@ -12,6 +12,7 @@ import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as location from "../location.js";
 import type * as map from "../map.js";
+import type * as moods from "../moods.js";
 import type * as posts from "../posts.js";
 
 import type {
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   location: typeof location;
   map: typeof map;
+  moods: typeof moods;
   posts: typeof posts;
 }>;
 

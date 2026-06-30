@@ -10,6 +10,7 @@ import { PostingForm } from "@/features/post";
 import { LocationPrompt } from "@/features/location";
 import { Feed } from "@/features/feed";
 import { MoodMap } from "@/features/map";
+import { DailyMoodPrompt } from "@/features/mood";
 
 export default function Home() {
   const { isSignedIn } = useAuth();
@@ -26,16 +27,17 @@ export default function Home() {
   
   const [locationState, setLocationState] = useState({
     status: "idle",
-    city: undefined
+    city: undefined,
+    locationData: null // Full location data for mood logging
   });
 
-  const handleLocationUpdate = useCallback((status, city) => {
-    setLocationState({ status, city });
+  const handleLocationUpdate = useCallback((status, city, locationData) => {
+    setLocationState({ status, city, locationData: locationData || locationState.locationData });
     // Close prompt when GPS succeeds
     if (status === "success") {
       setShowLocationPrompt(false);
     }
-  }, []);
+  }, [locationState.locationData]);
 
   const handleLocationClick = useCallback(() => {
     setShowLocationPrompt(true);
@@ -56,7 +58,7 @@ export default function Home() {
         onLocationMethodSelected={(method, cityData) => {
           if (method === "manual" && cityData) {
             // Manual city selected - update immediately and close
-            handleLocationUpdate("success", cityData.city);
+            handleLocationUpdate("success", cityData.city, cityData);
             handleLocationPromptClose();
           } else if (method === "gps") {
             // GPS selected - keep dialog open while locating
@@ -64,6 +66,14 @@ export default function Home() {
           }
         }}
         onClose={handleLocationPromptClose}
+      />
+
+      {/* Daily Mood Prompt - Shows once per day for signed-in users */}
+      <DailyMoodPrompt 
+        location={locationState.locationData}
+        onMoodLogged={(mood) => {
+          console.log("Mood logged:", mood);
+        }}
       />
 
       {/* Top Navigation */}
@@ -91,13 +101,15 @@ export default function Home() {
                 <div className="hidden lg:flex fixed top-24 right-8 z-50 w-80 flex-col">
                   {isSignedIn ? (
                       <PostingForm 
-                        onLocationUpdate={handleLocationUpdate}
+                        onLocationUpdate={(status, city, locationData) => {
+                          handleLocationUpdate(status, city, locationData);
+                        }}
                         onLocationMethodSelected={(method, cityData) => {
                           if (method === "manual" && cityData) {
-                            handleLocationUpdate("success", cityData.city);
+                            handleLocationUpdate("success", cityData.city, cityData);
                             handleLocationPromptClose();
                           } else if (method === "gps") {
-                            handleLocationUpdate("locating");
+                            handleLocationUpdate("locating", undefined, null);
                             // Dialog will close on GPS success via handleLocationUpdate
                           }
                         }}

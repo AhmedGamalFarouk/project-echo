@@ -6,8 +6,19 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 
+type MoodType = "Serene" | "Energetic" | "Melancholy" | "Anxious" | "Furious";
+
+// Mood color mapping for map markers
+const moodColors: Record<MoodType, string> = {
+  Serene: "#6EE7B7",     // Mint Green
+  Energetic: "#FDE047",  // Electric Yellow
+  Melancholy: "#3B82F6", // Deep Cobalt
+  Anxious: "#8B5CF6",    // Ultraviolet
+  Furious: "#EF4444",    // Crimson
+};
+
 export default function MoodMap() {
-  const cityActivity = useQuery(api.map.getMoods);
+  const moodData = useQuery(api.moods.getMoodMapData);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const [isLiveUpdate, setIsLiveUpdate] = React.useState(false);
   const prevCityCountRef = React.useRef<number>(0);
@@ -22,9 +33,9 @@ export default function MoodMap() {
 
   // Detect live updates and new cities
   React.useEffect(() => {
-    if (cityActivity) {
-      const currentCount = cityActivity.length;
-      const currentCityKeys = new Set(cityActivity.map(c => c.city));
+    if (moodData) {
+      const currentCount = moodData.length;
+      const currentCityKeys = new Set(moodData.map(c => c.city));
       
       // Check if data changed (not initial load)
       if (prevCityCountRef.current > 0 && currentCount !== prevCityCountRef.current) {
@@ -32,7 +43,7 @@ export default function MoodMap() {
         
         // Identify new cities
         const prevCities = new Set(
-          cityActivity
+          moodData
             .slice(0, prevCityCountRef.current)
             .map(c => c.city)
         );
@@ -52,7 +63,7 @@ export default function MoodMap() {
       
       prevCityCountRef.current = currentCount;
     }
-  }, [cityActivity]);
+  }, [moodData]);
 
   if (!mapboxToken) {
     return (
@@ -74,21 +85,37 @@ export default function MoodMap() {
   return (
     <div className="w-full h-full border-y border-white/10 relative overflow-hidden group">
         <div className="absolute top-4 left-4 z-10 glass-panel px-4 py-2 rounded-none flex items-center gap-3">
-            <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-white">Global_Activity_Map</h3>
+            <h3 className="font-mono text-xs uppercase tracking-[0.2em] text-white">Global_Mood_Map</h3>
             {isLiveUpdate && (
               <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-left-2">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <span className="font-mono text-[10px] text-primary uppercase tracking-wider">Live</span>
               </div>
             )}
-            {!isLiveUpdate && cityActivity && cityActivity.length > 0 && (
+            {!isLiveUpdate && moodData && moodData.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-green-500/50" />
                 <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
-                  {cityActivity.length} {cityActivity.length === 1 ? 'City' : 'Cities'}
+                  {moodData.length} {moodData.length === 1 ? 'City' : 'Cities'}
                 </span>
               </div>
             )}
+        </div>
+
+        {/* Mood Legend */}
+        <div className="absolute bottom-4 left-4 z-10 glass-panel px-3 py-2 rounded-none">
+          <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Mood_Legend</h4>
+          <div className="flex flex-wrap gap-2">
+            {(Object.entries(moodColors) as [MoodType, string][]).map(([mood, color]) => (
+              <div key={mood} className="flex items-center gap-1">
+                <div 
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="font-mono text-[9px] text-muted-foreground uppercase">{mood}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <Map
@@ -99,11 +126,14 @@ export default function MoodMap() {
             mapboxAccessToken={mapboxToken}
             attributionControl={false}
         >
-            {cityActivity?.map((city) => {
+            {moodData?.map((city) => {
                 const isNew = newCities.has(city.city);
-                // Activity intensity based on post count
+                const dominantMood = city.dominantMood as MoodType;
+                const moodColor = moodColors[dominantMood] || "#ffffff";
+                
+                // Activity intensity based on mood count
                 const intensity = Math.min(city.count / 10, 1);
-                const size = 8 + (intensity * 8); // 8-16px
+                const size = 8 + (intensity * 12); // 8-20px
                 
                 return (
                 <Marker 
@@ -115,25 +145,36 @@ export default function MoodMap() {
                     <div className={`relative flex flex-col items-center group/marker cursor-pointer ${isNew ? 'animate-in zoom-in-50 fade-in duration-700' : ''}`}>
                         {/* Tooltip on Hover */}
                         <div className="absolute bottom-full mb-2 hidden group-hover/marker:block bg-black/90 border border-white/20 px-2 py-1 text-[10px] font-mono whitespace-nowrap z-50">
-                            {city.city} :: {city.count} {city.count === 1 ? 'post' : 'posts'}
+                            <div className="text-white font-bold">{city.city}</div>
+                            <div className="text-muted-foreground">
+                              {city.count} {city.count === 1 ? 'mood' : 'moods'} logged
+                            </div>
+                            <div className="flex items-center gap-1 mt-1">
+                              <div 
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: moodColor }}
+                              />
+                              <span className="text-[9px] uppercase">{dominantMood}</span>
+                            </div>
                         </div>
 
                         {/* Glowing Pulse - Extra intense for new cities */}
                         <div 
                             className={`absolute -inset-4 rounded-full opacity-50 blur-md ${isNew ? 'animate-ping' : 'animate-pulse'}`}
                             style={{ 
-                                backgroundColor: `rgba(255, 255, 255, ${intensity})`,
+                                backgroundColor: moodColor,
                             }}
                         />
                         
                         {/* The Core Dot */}
                         <div 
-                            className={`rounded-full border border-white/50 relative z-10 transition-transform ${isNew ? 'scale-125' : ''}`}
+                            className={`rounded-full border border-white/30 relative z-10 transition-transform ${isNew ? 'scale-125' : ''}`}
                             style={{ 
-                                backgroundColor: '#fff',
+                                backgroundColor: moodColor,
                                 width: `${size}px`,
                                 height: `${size}px`,
-                                opacity: 0.8 + (intensity * 0.2)
+                                opacity: 0.8 + (intensity * 0.2),
+                                boxShadow: `0 0 ${4 + intensity * 8}px ${moodColor}`
                             }}
                         />
                     </div>
